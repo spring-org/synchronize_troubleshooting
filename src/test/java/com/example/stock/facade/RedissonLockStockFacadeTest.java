@@ -1,4 +1,4 @@
-package com.example.stock.service;
+package com.example.stock.facade;
 
 import com.example.stock.domain.Stock;
 import com.example.stock.infrastructure.StockRepository;
@@ -13,12 +13,11 @@ import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-class StockServiceTest {
+class RedissonLockStockFacadeTest {
 	@Autowired
-	private StockService stockService;
+	private RedissonLockStockFacade stockService;
 	@Autowired
 	private StockRepository stockRepository;
 	
@@ -31,29 +30,6 @@ class StockServiceTest {
 	@AfterEach
 	void tearDown() {
 		stockRepository.deleteAll();
-	}
-	
-	@Test
-	void stock_decrease() {
-		stockService.decrease(1L, 10L);
-		Stock stock = stockRepository.findById(1L).orElseThrow();
-		assertThat(stock.getQuantity()).isEqualTo(90L);
-	}
-	
-	@Test
-	void multi_thread_stock_decrease() {
-		Thread thread1 = new Thread(() -> stockService.decrease(1L, 10L));
-		Thread thread2 = new Thread(() -> stockService.decrease(1L, 10L));
-		thread1.start();
-		thread2.start();
-		try {
-			thread1.join();
-			thread2.join();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		Stock stock = stockRepository.findById(1L).orElseThrow();
-		assertThat(stock.getQuantity()).isEqualTo(80L);
 	}
 	
 	/**
@@ -80,11 +56,6 @@ class StockServiceTest {
 		Stock stock = stockRepository.findById(1L).orElseThrow();
 		// 100 - (1 * 100) = 0
 		assertThat(stock.getQuantity()).isZero();
-		
 	}
 	
-	@Test
-	void stock_decrease_not_enough_stock() {
-		assertThrows(IllegalArgumentException.class, () -> stockService.decrease(1L, 110L));
-	}
 }
