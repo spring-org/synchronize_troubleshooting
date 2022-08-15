@@ -1,4 +1,4 @@
-package com.example.stock.service;
+package com.example.stock.facade;
 
 import com.example.stock.domain.Stock;
 import com.example.stock.infrastructure.StockRepository;
@@ -13,11 +13,11 @@ import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+
 @SpringBootTest
-class StockServiceTest {
+class OptimisticLockStockFacadeTest {
 	@Autowired
-	private StockService stockService;
+	private OptimisticLockStockFacade stockService;
 	@Autowired
 	private StockRepository stockRepository;
 	
@@ -32,29 +32,6 @@ class StockServiceTest {
 		stockRepository.deleteAll();
 	}
 	
-	@Test
-	void stock_decrease() {
-		stockService.decrease(1L, 10L);
-		Stock stock = stockRepository.findById(1L).orElseThrow();
-		assertThat(stock.getQuantity()).isEqualTo(90L);
-	}
-	
-	@Test
-	void multi_thread_stock_decrease() {
-		Thread thread1 = new Thread(() -> stockService.decrease(1L, 10L));
-		Thread thread2 = new Thread(() -> stockService.decrease(1L, 10L));
-		thread1.start();
-		thread2.start();
-		try {
-			thread1.join();
-			thread2.join();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		Stock stock = stockRepository.findById(1L).orElseThrow();
-		assertThat(stock.getQuantity()).isEqualTo(80L);
-	}
-	
 	/**
 	 * race condition
 	 */
@@ -65,8 +42,13 @@ class StockServiceTest {
 		CountDownLatch countDownLatch = new CountDownLatch(threadCount);
 		for (int i = 0; i < threadCount; i++) {
 			executeService.submit(() -> {
-				stockService.decrease(1L, 1L);
-				countDownLatch.countDown();
+				try {
+					stockService.decrease(1L, 1L);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				} finally {
+					countDownLatch.countDown();
+				}
 			});
 		}
 		
@@ -80,10 +62,5 @@ class StockServiceTest {
 		// 100 - (1 * 100) = 0
 		assertThat(stock.getQuantity()).isZero();
 		
-	}
-	
-	@Test
-	void stock_decrease_not_enough_stock() {
-		assertThrows(IllegalArgumentException.class, () -> stockService.decrease(1L, 110L));
 	}
 }

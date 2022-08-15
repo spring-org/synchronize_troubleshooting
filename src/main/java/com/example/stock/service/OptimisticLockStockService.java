@@ -6,16 +6,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class StockService {
+public class OptimisticLockStockService {
 	private final StockRepository stockRepository;
 	
-	public StockService(StockRepository stockRepository) {
+	public OptimisticLockStockService(StockRepository stockRepository) {
 		this.stockRepository = stockRepository;
 	}
 	
 	@Transactional
 	public void decrease(Long productId, Long quantity) {
-		Stock stock = stockRepository.findById(productId).orElseThrow();
+		Stock stock = stockRepository.findByIdWithOptimisticLock(productId);
 		stock.decrease(quantity);
 		stockRepository.saveAndFlush(stock);
 	}
