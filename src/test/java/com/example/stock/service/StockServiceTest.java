@@ -24,7 +24,7 @@ class StockServiceTest {
 	@BeforeEach
 	void setUp() {
 		Stock stock = new Stock(1L, 100L);
-		stockRepository.save(stock);
+		stockRepository.saveAndFlush(stock);
 	}
 	
 	@AfterEach
@@ -65,8 +65,11 @@ class StockServiceTest {
 		CountDownLatch countDownLatch = new CountDownLatch(threadCount);
 		for (int i = 0; i < threadCount; i++) {
 			executeService.submit(() -> {
-				stockService.decrease(1L, 1L);
-				countDownLatch.countDown();
+				try {
+					stockService.decrease(1L, 1L);
+				} finally {
+					countDownLatch.countDown();
+				}
 			});
 		}
 		
