@@ -13,11 +13,11 @@ import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+
 @SpringBootTest
-class StockServiceTest {
+class PessimisticLockStockServiceTest {
 	@Autowired
-	private StockService stockService;
+	private PessimisticLockStockService stockService;
 	@Autowired
 	private StockRepository stockRepository;
 	
@@ -32,12 +32,6 @@ class StockServiceTest {
 		stockRepository.deleteAll();
 	}
 	
-	@Test
-	void stock_decrease() {
-		stockService.decrease(1L, 10L);
-		Stock stock = stockRepository.findById(1L).orElseThrow();
-		assertThat(stock.getQuantity()).isEqualTo(90L);
-	}
 	/**
 	 * race condition
 	 */
@@ -65,8 +59,4 @@ class StockServiceTest {
 		
 	}
 	
-	@Test
-	void stock_decrease_not_enough_stock() {
-		assertThrows(IllegalArgumentException.class, () -> stockService.decrease(1L, 110L));
-	}
 }
